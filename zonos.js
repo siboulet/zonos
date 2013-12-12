@@ -11,7 +11,7 @@ function updateDevicePlaying(device, playing) {
     xhr.onload = function(e) {
       if (this.status == 200) {
         var blob = new Blob([this.response], {type: 'image/jpeg'});
-        $('[id="'+device.UDN+'"] img.album-art').attr('src', URL.createObjectURL(blob));
+        $('#rooms-list li[id="'+device.UDN+'"] img.album-art').attr('src', URL.createObjectURL(blob));
       }
     };
 
@@ -20,13 +20,22 @@ function updateDevicePlaying(device, playing) {
   
   // Artist and track information
   if (playing.isRadio) {
-    $('[id="'+device.UDN+'"] .artist-name').each(function(){$(this).html(playing.radioShow);});    
-    $('[id="'+device.UDN+'"] .track-title').each(function(){$(this).html(playing.streamContent);});
+    $('#rooms-list li[id="'+device.UDN+'"] .artist-name').html(playing.radioShow);
+    $('#rooms-list li[id="'+device.UDN+'"] .track-title').html(playing.streamContent);
   } else { 
-    $('[id="'+device.UDN+'"] .artist-name').each(function(){$(this).html(playing.artistName);});
-    $('[id="'+device.UDN+'"] .track-title').each(function(){$(this).html(playing.trackTitle);});
+    $('#rooms-list li[id="'+device.UDN+'"] .artist-name').html(playing.artistName);
+    $('#rooms-list li[id="'+device.UDN+'"] .track-title').html(playing.trackTitle);
   }
-  
+
+  // Toggle queue now playing track
+  var queue = $('[id="'+device.UDN+'"] .room-queue ol li');
+  if (queue.length > 0) {
+    var prevQueueTrackId = $('[id="'+device.UDN+'"].room-info').attr('queueTrackId');
+    $(queue[prevQueueTrackId-1]).removeClass('now-playing');
+    $(queue[playing.queueTrackId-1]).addClass('now-playing');
+  }
+  $('[id="'+device.UDN+'"].room-info').attr('queueTrackId',playing.queueTrackId);
+
   // Room control buttons
   if (playing.state == 'STOPPED' || playing.state == 'PAUSED_PLAYBACK') {
     $('[id="'+device.UDN+'"] .room-control .play-button').show();
@@ -51,10 +60,10 @@ function updateDevicePlaying(device, playing) {
   }
 }
 
-function handlePlayingChangeEvent(device, event) {
+function handlePlayingEvent(device, event) {
   var trackMetaData = $.parseXML($(event).find('CurrentTrackMetaData').attr('val'));
   if (! trackMetaData) return;
-    
+
   var playing = {};
   if ($(trackMetaData).find('radioShowMd').text().length) {
     playing['isRadio'] = true;
@@ -66,6 +75,8 @@ function handlePlayingChangeEvent(device, event) {
     playing['isRadio'] = false;
     playing['artistName'] = decodeURIComponent(escape($(trackMetaData).find('creator').text()));
     playing['trackTitle'] = decodeURIComponent(escape($(trackMetaData).find('title').text()));
+    playing['trackDuration'] = $(event).find('CurrentTrackDuration').attr('val');
+    playing['queueTrackId'] = parseInt($(event).find('currenttrack').attr('val'));
   }
 
   playing['albumArtURL'] = device.endpointURI+$(trackMetaData).find('albumArtURI').text();
@@ -75,7 +86,7 @@ function handlePlayingChangeEvent(device, event) {
   updateDevicePlaying(device, playing);
 }
 
-function handleVolumeChangeEvent(device, event) {
+function handleVolumeEvent(device, event) {
   var volume = $(event).find('Volume[channel="Master"]').attr('val');
 
   $('[id="'+device.UDN+'"] .room-control .volume-slider').val(volume);
@@ -87,14 +98,39 @@ function handleVolumeChangeEvent(device, event) {
   }
 }
 
-function showRoomDetail(device) {
+function handleQueueEvent(device, event) {
+  device.callServiceAction('Queue','Browse', {QueueID:0,StartingIndex:0,RequestedCount:0},
+    function(device, result) {
+      var queue = $.parseXML(result.Result);
+      var currQueueTrackId = $('[id="'+device.UDN+'"].room-info').attr('queueTrackId');
+
+      // Clear current queue
+      $('[id="'+device.UDN+'"] .room-queue ol').html('');
+
+      $(queue).find('item').each(
+        function(index) {
+          var artistName = $(this).find('creator').text();
+          var trackTitle = $(this).find('title').text();
+          var albumTitle = $(this).find('album').text();
+          $('[id="'+device.UDN+'"] .room-queue ol').append('<li><img class="album-art"><span class="artist-name">'+artistName+'</span><span class="album-title">'+albumTitle+'</span><span class="track-title">'+trackTitle+'</span>');
+
+          if (currQueueTrackId-1 == index) {
+            $('[id="'+device.UDN+'"] .room-queue ol li').last().addClass('now-playing');
+          }
+        }
+      );
+    }
+  );
+}
+
+function showDeviceDetail(device) {
   $('div[id="'+device.UDN+'"]').show(100);
   $('#rooms-list').hide();
 }
 
-function addDiscoveredRoom(device) {
+function addDiscoveredDevice(device) {
   $('#searching').hide();
-  $('#rooms-list').parent().append('<div id="'+device.UDN+'" class="room-info"><input type="image" src="close.png" class="close-button"><div class="room-control"><span class="room-name">'+device.roomName+'</span><div class="volume-control"><img src="volume-down.png" class="volume-down"><input type="range" class="volume-slider" min="0" max="100" value="0"><img src="volume-up.png" class="volume-up"></div><input type="image" src="prev.png" class="prev-button"><input type="image" src="play.png" class="play-button"><input type="image" src="pause.png" class="pause-button"><input type="image" src="stop.png" class="stop-button"><input type="image" src="next.png" class="next-button"></div><div class="now-playing"><h1>NOW PLAYING</h1><img class="album-art"><span class="artist-name"/><span class="track-title"/></div></div>');
+  $('#rooms-list').parent().append('<div id="'+device.UDN+'" class="room-info"><input type="image" src="close.png" class="close-button"><div class="room-control"><span class="room-name">'+device.roomName+'</span><div class="volume-control"><img src="volume-down.png" class="volume-down"><input type="range" class="volume-slider" min="0" max="100" value="0"><img src="volume-up.png" class="volume-up"></div><input type="image" src="prev.png" class="prev-button"><input type="image" src="play.png" class="play-button"><input type="image" src="pause.png" class="pause-button"><input type="image" src="stop.png" class="stop-button"><input type="image" src="next.png" class="next-button"></div><div class="room-queue"><ol/></div></div>');
       
   $('div[id="'+device.UDN+'"] .close-button').click(function(){
     $('#rooms-list').show();
@@ -125,9 +161,9 @@ function addDiscoveredRoom(device) {
     device.callServiceAction('RenderingControl', 'SetVolume', {'InstanceID':0,'Channel':'Master','DesiredVolume':this.value}, function(){});
   });
      
-  $('#rooms-list ul').append('<li id="'+device.UDN+'"><img class="album-art"><span class="room-name">'+device.roomName+'</span><span class="artist-name"/><span class="track-title"/>');
+  $('#rooms-list ul').append('<li id="'+device.UDN+'"><div class="now-playing"><img class="album-art"><span class="room-name">'+device.roomName+'</span><span class="artist-name"/><span class="track-title"/></div>');
   $('#rooms-list ul li').last().click(function() {
-    showRoomDetail(device);
+    showDeviceDetail(device);
   });
 }
 
@@ -142,7 +178,7 @@ chrome.runtime.onMessage.addListener(
             if (result.CurrentInvisible == 1) {
               console.log('Device '+device.friendlyName+' is invisible');
             } else {
-              addDiscoveredRoom(device);
+              addDiscoveredDevice(device);
             }
           }
         );
@@ -152,9 +188,14 @@ chrome.runtime.onMessage.addListener(
         request.device.__proto__ = UpnpDevice.prototype;
         var event = $(request.event);
         if (event.find('TransportState').length) {
-          handlePlayingChangeEvent(request.device, event);
+          handlePlayingEvent(request.device, event);
         } else if (event.find('Volume').length) {
-          handleVolumeChangeEvent(request.device, event);
+          handleVolumeEvent(request.device, event);
+        } else if (event.attr('xmlns') === 'urn:schemas-sonos-com:metadata-1-0/Queue/') {
+          handleQueueEvent(request.device, event);
+        } else {
+          console.log('Received unhandled UPnP event');
+          console.log(event);
         }
         break;
 

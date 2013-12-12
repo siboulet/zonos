@@ -21,6 +21,9 @@ function discoveryDeviceCallback(device) {
 
   // Volume control events
   upnpEventListener.subscribeServiceEvent(device, 'RenderingControl', upnpEventCallback);
+
+  // Queue change events
+  upnpEventListener.subscribeServiceEvent(device, 'Queue', upnpEventCallback);
 }
 
 function discoveryTimeoutCallback() {

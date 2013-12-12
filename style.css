@@ -150,28 +150,53 @@ body {
   opacity: 0.5;
 }
 
-div.now-playing {
-  margin: 3px;
+.room-queue {
+  height: 380px;
   background-color: #4076ba;
+  margin: 3px;
   border-radius: 3px;
   padding: 2px 5px 12px;
+  overflow-y: scroll;
+  overflow-x: hidden;
 }
 
-.now-playing h1 {
-  font-size: 16px;
-  line-height: 16px;
+.room-queue ol {
+  padding: 0;
+  list-style-position: inside;
 }
 
-.room-info .artist-name, .room-info .track-title {
+.room-queue li {
+  padding: 5px;
+}
+
+.room-queue li + li {
+  margin-top: 4px;
+}
+
+.room-queue li span {
   display: block;
+}
+
+.room-queue .now-playing {
   font-size: 18px;
-  text-align: center;
+  background: rgba(255, 255, 255, 0.9);
+  color: black;
+  margin: 3px;
+  border-radius: 2px;
+  height: 110px;
 }
 
-.room-info .album-art {
-  display: block;
-  margin: auto;
-  height: 200px;
-  width: 200px;
-  padding: 10px;
+.room-queue .now-playing:before {
+  content: '';
 }
+
+.room-queue .album-art {
+  display: none;
+}
+
+.room-queue .now-playing .album-art {
+//  display: inline-block;
+  height: 100px;
+  width: 100px;
+}
+
