@@ -1,0 +1,25 @@
+{
+  "manifest_version": 2,
+
+  "name": "Zonos",
+  "description": "Simple Sonos Controller App.",
+  "version": "0.1",
+
+  "app": {
+    "background": {
+      "scripts": ["jquery/jquery.min.js", "upnp.js", "background.js"]
+    }
+  },
+
+  "permissions": [
+    "http://*/",
+    {
+      "socket": ["udp-send-to", "udp-bind", "tcp-listen", "tcp-connect"]
+    }
+  ],
+
+  "icons": {
+    "128": "icon_128.png"
+  }
+
+}

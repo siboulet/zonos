@@ -1,0 +1,177 @@
+body {
+  background-color: #d8d8d6;
+  margin: 0;
+  font-family: Arimo;
+}
+
+#header {
+  height: 60px;
+  line-height: 60px;
+  padding-left: 5px;
+  padding-right: 12%;
+  background-color: #36383c;
+  color: #efefef;
+  border-bottom: 1px solid white;
+}
+
+#header h1 {
+  padding-left: 10px;
+  display: inline;
+}
+
+#logo {
+  float: left;
+  height: 56px;
+  padding: 2px;
+}
+
+#searching {
+  font-size: 16px;
+  margin-top: 35%;
+  text-align: center;
+  color: #8d8e90;
+}
+
+#searching img {
+  margin: auto;
+  margin-bottom: 20px;
+  display: block;
+  height: 32px;
+  width: 32px;
+  opacity: 0.4;
+}
+
+#rooms-list ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+#rooms-list ul li {
+  border: 1px solid #c0c0c0;
+  border-radius: 2px;
+  cursor: pointer;
+  height: 52px;
+}
+
+#rooms-list .room-name {
+  display: block;
+  font-size: 16px;
+  line-height: 20px;
+  color: #4076ba;
+}
+
+#rooms-list .artist-name, #rooms-list .track-title {
+  display: block;
+  font-size: 14px;
+}
+
+#rooms-list .album-art {
+  float: left;
+  height: 52px;
+  width: 52px;
+  margin-right: 5px;
+}
+
+.room-info {
+  display: none;
+  color: white;
+}
+
+.room-info .close-button {
+  float: right;
+  padding: 2px;
+  height: 9px;
+  opacity: 0.9;
+}
+
+.room-control {
+  height: 42px;
+  text-align: center;
+  margin: auto;
+}
+
+.room-control .room-name {
+  display: block;
+  color: black;
+  font-size: 12px;
+  line-height: 13px;
+}
+
+.room-control .volume-control {
+  display: inline-block;
+  vertical-align: top;
+  text-align: left;
+  margin-top: 3px;
+  padding-right: 20px;
+}
+
+.room-control .volume-control img {
+  opacity: 0.7;
+  margin: 0 4px;
+}
+
+.room-control .volume-control .volume-down {
+  height: 10px;
+  width: 11px;
+  padding-top: 6px;
+  vertical-align: top;
+}
+
+.room-control .volume-control .volume-up {
+  height: 16px;
+  width: 15px;
+  padding-top: 3px;
+  vertical-align: top;
+}
+
+.room-control .volume-control input[type=range] {
+  height: 16px;
+  width: 90px;
+}
+
+.room-control input[type=image] {
+  border: 1px solid #c0c0c0;
+  border-radius: 5px;
+  padding: 4px;
+  height: 16px;
+}
+
+.room-control input[type=image] + input[type=image] {
+  margin-left: 4px;
+}
+
+.room-control .pause-button {
+  width: 18px;
+}
+
+.room-control input[type=image]:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+div.now-playing {
+  margin: 3px;
+  background-color: #4076ba;
+  border-radius: 3px;
+  padding: 2px 5px 12px;
+}
+
+.now-playing h1 {
+  font-size: 16px;
+  line-height: 16px;
+}
+
+.room-info .artist-name, .room-info .track-title {
+  display: block;
+  font-size: 18px;
+  text-align: center;
+}
+
+.room-info .album-art {
+  display: block;
+  margin: auto;
+  height: 200px;
+  width: 200px;
+  padding: 10px;
+}
