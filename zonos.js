@@ -12,6 +12,8 @@ function updateDevicePlaying(device, playing) {
       if (this.status == 200) {
         var blob = new Blob([this.response], {type: 'image/jpeg'});
         $('#rooms-list li[id="'+device.UDN+'"] img.album-art').attr('src', URL.createObjectURL(blob));
+        var nowPlayingAlbumArt = $('[id="'+device.UDN+'"] .room-queue ol li.now-playing img.album-art');
+        if (nowPlayingAlbumArt.attr('src') === undefined) { nowPlayingAlbumArt.attr('src', URL.createObjectURL(blob)); }
       }
     };
 
@@ -30,11 +32,12 @@ function updateDevicePlaying(device, playing) {
   // Toggle queue now playing track
   var queue = $('[id="'+device.UDN+'"] .room-queue ol li');
   if (queue.length > 0) {
-    var prevQueueTrackId = $('[id="'+device.UDN+'"].room-info').attr('queueTrackId');
-    $(queue[prevQueueTrackId-1]).removeClass('now-playing');
+    var prevQueueTrackId = $('[id="'+device.UDN+'"].room-info').data('queueTrackId');
     $(queue[playing.queueTrackId-1]).addClass('now-playing');
+    if (prevQueueTrackId != playing.queueTrackId) $(queue[prevQueueTrackId-1]).removeClass('now-playing');
+    $(queue).closest('div').scrollTo($(queue[playing.queueTrackId-1]),{offset:-45,duration:500});
   }
-  $('[id="'+device.UDN+'"].room-info').attr('queueTrackId',playing.queueTrackId);
+  $('[id="'+device.UDN+'"].room-info').data('queueTrackId',playing.queueTrackId);
 
   // Room control buttons
   if (playing.state == 'STOPPED' || playing.state == 'PAUSED_PLAYBACK') {
@@ -102,21 +105,40 @@ function handleQueueEvent(device, event) {
   device.callServiceAction('Queue','Browse', {QueueID:0,StartingIndex:0,RequestedCount:0},
     function(device, result) {
       var queue = $.parseXML(result.Result);
-      var currQueueTrackId = $('[id="'+device.UDN+'"].room-info').attr('queueTrackId');
+      var currQueueTrackId = $('[id="'+device.UDN+'"].room-info').data('queueTrackId');
 
       // Clear current queue
       $('[id="'+device.UDN+'"] .room-queue ol').html('');
 
       $(queue).find('item').each(
         function(index) {
+          var trackURI = $(this).find('res').text();
           var artistName = $(this).find('creator').text();
           var trackTitle = $(this).find('title').text();
           var albumTitle = $(this).find('album').text();
           $('[id="'+device.UDN+'"] .room-queue ol').append('<li><img class="album-art"><span class="artist-name">'+artistName+'</span><span class="album-title">'+albumTitle+'</span><span class="track-title">'+trackTitle+'</span>');
 
           if (currQueueTrackId-1 == index) {
-            $('[id="'+device.UDN+'"] .room-queue ol li').last().addClass('now-playing');
+            $('[id="'+device.UDN+'"] .room-queue li').last().addClass('now-playing');
           }
+
+         $('[id="'+device.UDN+'"] .room-queue li').last().click(
+           function() {
+             if ($(window).data('windowFocus') === true) return;
+
+             if ($(this).hasClass('now-playing')) {
+               // Click on now playing to play/pause
+               if ($('[id="'+device.UDN+'"] .pause-button').is(':visible')) {
+                 $('[id="'+device.UDN+'"] .pause-button').trigger('click');
+               } else {
+                 $('[id="'+device.UDN+'"] .play-button').trigger('click');
+               }
+             } else {
+               // Click to seek track
+               device.callServiceAction('AVTransport', 'Seek', {InstanceID:0,Unit:'TRACK_NR',Target:$(this).index()+1}, function(){});
+             }
+           }
+         );
         }
       );
     }
@@ -124,7 +146,8 @@ function handleQueueEvent(device, event) {
 }
 
 function showDeviceDetail(device) {
-  $('div[id="'+device.UDN+'"]').show(100);
+  $('div[id="'+device.UDN+'"]').show();
+  $('[id="'+device.UDN+'"] .room-queue').scrollTo($('[id="'+device.UDN+'"] .room-queue li.now-playing'),{offset:-45});
   $('#rooms-list').hide();
 }
 
@@ -138,27 +161,27 @@ function addDiscoveredDevice(device) {
   });
       
   $('div[id="'+device.UDN+'"] .pause-button').click(function(){
-    device.callServiceAction('AVTransport', 'Pause', {'InstanceID':0}, function(){});
+    device.callServiceAction('AVTransport', 'Pause', {InstanceID:0}, function(){});
   });
       
   $('div[id="'+device.UDN+'"] .play-button').click(function(){
-    device.callServiceAction('AVTransport', 'Play', {'InstanceID':0,'Speed':1}, function(){});
+    device.callServiceAction('AVTransport', 'Play', {InstanceID:0,'Speed':1}, function(){});
   });
       
   $('div[id="'+device.UDN+'"] .stop-button').click(function(){
-    device.callServiceAction('AVTransport', 'Stop', {'InstanceID':0}, function(){});
+    device.callServiceAction('AVTransport', 'Stop', {InstanceID:0}, function(){});
   });
       
   $('div[id="'+device.UDN+'"] .prev-button').click(function(){
-    device.callServiceAction('AVTransport', 'Previous', {'InstanceID':0}, function(){});
+    device.callServiceAction('AVTransport', 'Previous', {InstanceID:0}, function(){});
   });
       
   $('div[id="'+device.UDN+'"] .next-button').click(function(){
-    device.callServiceAction('AVTransport', 'Next', {'InstanceID':0}, function(){});
+    device.callServiceAction('AVTransport', 'Next', {InstanceID:0}, function(){});
   });
       
   $('div[id="'+device.UDN+'"] .volume-slider').change(function(){
-    device.callServiceAction('RenderingControl', 'SetVolume', {'InstanceID':0,'Channel':'Master','DesiredVolume':this.value}, function(){});
+    device.callServiceAction('RenderingControl', 'SetVolume', {InstanceID:0,Channel:'Master',DesiredVolume:this.value}, function(){});
   });
      
   $('#rooms-list ul').append('<li id="'+device.UDN+'"><div class="now-playing"><img class="album-art"><span class="room-name">'+device.roomName+'</span><span class="artist-name"/><span class="track-title"/></div>');
@@ -205,5 +228,13 @@ chrome.runtime.onMessage.addListener(
         }
         break;
     }
+  }
+);
+
+$(window).focus(
+  function(event){
+    // Prevent events from triggering action when window just recently got focus
+    $(window).data('windowFocus', true);
+    setTimeout(function(){$(window).data('windowFocus', false);}, 200);
   }
 );
