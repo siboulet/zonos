@@ -1,23 +1,30 @@
 function updateDevicePlaying(device, playing) {
-  if (playing.albumArtURL) {
-    // Load album artwork
-    // https://developer.mozilla.org/en-US/docs/Web/API/Blob
-    // http://www.html5rocks.com/en/tutorials/file/xhr2/
-  
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', playing.albumArtURL, true);
-    xhr.responseType = 'blob';
- 
-    xhr.onload = function(e) {
-      if (this.status == 200) {
-        var blob = new Blob([this.response], {type: 'image/jpeg'});
-        $('#rooms-list li[id="'+device.UDN+'"] img.album-art').attr('src', URL.createObjectURL(blob));
-        var nowPlayingAlbumArt = $('[id="'+device.UDN+'"] .room-queue ol li.now-playing img.album-art');
-        if (nowPlayingAlbumArt.attr('src') === undefined) { nowPlayingAlbumArt.attr('src', URL.createObjectURL(blob)); }
-      }
-    };
 
-    xhr.send();
+  if (playing.albumArtURL) {
+    var nowPlayingAlbumArt = $('[id="'+device.UDN+'"] .room-queue ol li.now-playing img.album-art');
+    if (nowPlayingAlbumArt.attr('src') !== undefined) {
+      // Load artwork from queue
+      $('#rooms-list li[id="'+device.UDN+'"] img.album-art').attr('src', nowPlayingAlbumArt.attr('src'));
+    } else {
+      // Load album artwork from network
+      // https://developer.mozilla.org/en-US/docs/Web/API/Blob
+      // http://www.html5rocks.com/en/tutorials/file/xhr2/
+  
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', playing.albumArtURL, true);
+      xhr.responseType = 'blob';
+ 
+      xhr.onload = function() {
+        if (this.status == 200) {
+          var blob = new Blob([this.response], {type: 'image/jpeg'});
+          var urlObject = URL.createObjectURL(blob);
+          $('#rooms-list li[id="'+device.UDN+'"] img.album-art').attr('src', urlObject);
+          $('[id="'+device.UDN+'"] .room-queue ol li.now-playing img.album-art').attr('src', urlObject);
+        }
+      };
+
+      xhr.send();
+    }
   }
   
   // Artist and track information
@@ -120,6 +127,7 @@ function handleQueueEvent(device, event) {
 
           if (currQueueTrackId-1 == index) {
             $('[id="'+device.UDN+'"] .room-queue li').last().addClass('now-playing');
+            $('[id="'+device.UDN+'"] .room-queue li').last().find('img.album-art').attr('src', $('#rooms-list li[id="'+device.UDN+'"] img.album-art').attr('src'));
           }
 
          $('[id="'+device.UDN+'"] .room-queue li').last().click(
