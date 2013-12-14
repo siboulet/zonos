@@ -1,4 +1,5 @@
 function updateDevicePlaying(device, playing) {
+  $('[id="'+device.UDN+'"] .room-queue ol li.now-playing').removeClass('now-playing');
 
   if (playing.albumArtURL) {
     var nowPlayingAlbumArt = $('[id="'+device.UDN+'"] .room-queue ol li.now-playing img.album-art');
@@ -31,20 +32,24 @@ function updateDevicePlaying(device, playing) {
   if (playing.isRadio) {
     $('#rooms-list li[id="'+device.UDN+'"] .artist-name').html(playing.radioShow);
     $('#rooms-list li[id="'+device.UDN+'"] .track-title').html(playing.streamContent);
+
+    // Hide queue for streaming/radio playback
+    $('[id="'+device.UDN+'"] .room-queue').hide();
   } else { 
     $('#rooms-list li[id="'+device.UDN+'"] .artist-name').html(playing.artistName);
     $('#rooms-list li[id="'+device.UDN+'"] .track-title').html(playing.trackTitle);
-  }
 
-  // Toggle queue now playing track
-  var queue = $('[id="'+device.UDN+'"] .room-queue ol li');
-  if (queue.length > 0) {
-    var prevQueueTrackId = $('[id="'+device.UDN+'"].room-info').data('queueTrackId');
-    $(queue[playing.queueTrackId-1]).addClass('now-playing');
-    if (prevQueueTrackId != playing.queueTrackId) $(queue[prevQueueTrackId-1]).removeClass('now-playing');
-    $(queue).closest('div').scrollTo($(queue[playing.queueTrackId-1]),{offset:-45,duration:500});
+    // Ensure queue is visible
+    $('[id="'+device.UDN+'"] .room-queue').show();
+
+    // Toggle queue now playing track
+    var queue = $('[id="'+device.UDN+'"] .room-queue ol li');
+    if (queue.length > 0) {
+      $(queue[playing.queueTrackId-1]).addClass('now-playing');
+      $(queue).closest('div').scrollTo($(queue[playing.queueTrackId-1]),{offset:-45,duration:500});
+    }
   }
-  $('[id="'+device.UDN+'"].room-info').data('queueTrackId',playing.queueTrackId);
+  $('[id="'+device.UDN+'"].room-info').data('playing', playing);
 
   // Room control buttons
   if (playing.state == 'STOPPED' || playing.state == 'PAUSED_PLAYBACK') {
@@ -92,7 +97,7 @@ function handlePlayingEvent(device, event) {
   playing['albumArtURL'] = device.endpointURI+$(trackMetaData).find('albumArtURI').text();
   
   playing['state'] = $(event).find('TransportState').attr('val');
- 
+
   updateDevicePlaying(device, playing);
 }
 
@@ -112,7 +117,7 @@ function handleQueueEvent(device, event) {
   device.callServiceAction('Queue','Browse', {QueueID:0,StartingIndex:0,RequestedCount:0},
     function(device, result) {
       var queue = $.parseXML(result.Result);
-      var currQueueTrackId = $('[id="'+device.UDN+'"].room-info').data('queueTrackId');
+      var playing = $('[id="'+device.UDN+'"].room-info').data('playing');
 
       // Clear current queue
       $('[id="'+device.UDN+'"] .room-queue ol').html('');
@@ -125,9 +130,10 @@ function handleQueueEvent(device, event) {
           var albumTitle = $(this).find('album').text();
           $('[id="'+device.UDN+'"] .room-queue ol').append('<li><img class="album-art"><span class="artist-name">'+artistName+'</span><span class="album-title">'+albumTitle+'</span><span class="track-title">'+trackTitle+'</span>');
 
-          if (currQueueTrackId-1 == index) {
+          if (playing && playing.queueTrackId && playing.queueTrackId-1 == index) {
             $('[id="'+device.UDN+'"] .room-queue li').last().addClass('now-playing');
             $('[id="'+device.UDN+'"] .room-queue li').last().find('img.album-art').attr('src', $('#rooms-list li[id="'+device.UDN+'"] img.album-art').attr('src'));
+            $('[id="'+device.UDN+'"] .room-queue').scrollTo($('[id="'+device.UDN+'"] .room-queue li.now-playing'),{offset:-45});
           }
 
          $('[id="'+device.UDN+'"] .room-queue li').last().click(
@@ -155,7 +161,10 @@ function handleQueueEvent(device, event) {
 
 function showDeviceDetail(device) {
   $('div[id="'+device.UDN+'"]').show();
-  $('[id="'+device.UDN+'"] .room-queue').scrollTo($('[id="'+device.UDN+'"] .room-queue li.now-playing'),{offset:-45});
+  if ($('[id="'+device.UDN+'"] .room-queue li.now-playing').length) {
+    // Scroll to currently playing item
+    $('[id="'+device.UDN+'"] .room-queue').scrollTo($('[id="'+device.UDN+'"] .room-queue li.now-playing'),{offset:-45});
+  }
   $('#rooms-list').hide();
 }
 
@@ -225,6 +234,7 @@ chrome.runtime.onMessage.addListener(
         } else if (event.attr('xmlns') === 'urn:schemas-sonos-com:metadata-1-0/Queue/') {
           handleQueueEvent(request.device, event);
         } else {
+// TODO: Mute event
           console.log('Received unhandled UPnP event');
           console.log(event);
         }
