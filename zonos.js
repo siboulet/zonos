@@ -1,44 +1,44 @@
 function updateDevicePlaying(device, playing) {
   $('[id="'+device.UDN+'"] .room-queue ol li.now-playing').removeClass('now-playing');
 
-  if (playing.albumArtURL) {
-    var nowPlayingAlbumArt = $('[id="'+device.UDN+'"] .room-queue ol li.now-playing img.album-art');
-    if (nowPlayingAlbumArt.attr('src') !== undefined) {
-      // Load artwork from queue
-      $('#rooms-list li[id="'+device.UDN+'"] img.album-art').attr('src', nowPlayingAlbumArt.attr('src'));
-    } else {
-      // Load album artwork from network
-      // https://developer.mozilla.org/en-US/docs/Web/API/Blob
-      // http://www.html5rocks.com/en/tutorials/file/xhr2/
+  // Currently playing album/radio stream artwork
+  var nowPlayingAlbumArt = $('[id="'+device.UDN+'"] .room-queue ol li.now-playing img.album-art');
+  if (nowPlayingAlbumArt.attr('src') !== undefined) {
+    // Load artwork from queue
+    $('#rooms-list li[id="'+device.UDN+'"] img.album-art').attr('src', nowPlayingAlbumArt.attr('src'));
+  } else {
+    // Load album artwork from network
+    // https://developer.mozilla.org/en-US/docs/Web/API/Blob
+    // http://www.html5rocks.com/en/tutorials/file/xhr2/
   
-      var xhr = new XMLHttpRequest();
-      xhr.open('GET', playing.albumArtURL, true);
-      xhr.responseType = 'blob';
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', playing.albumArtURL, true);
+    xhr.responseType = 'blob';
  
-      xhr.onload = function() {
-        if (this.status == 200) {
-          var blob = new Blob([this.response], {type: 'image/jpeg'});
-          var urlObject = URL.createObjectURL(blob);
-          $('#rooms-list li[id="'+device.UDN+'"] img.album-art').attr('src', urlObject);
-          $('[id="'+device.UDN+'"] .room-queue ol li.now-playing img.album-art').attr('src', urlObject);
-        }
-      };
+    xhr.onload = function() {
+      if (this.status == 200) {
+        var blob = new Blob([this.response], {type: 'image/jpeg'});
+        var urlObject = URL.createObjectURL(blob);
+        $('#rooms-list li[id="'+device.UDN+'"] img.album-art').attr('src', urlObject);
+        $('[id="'+device.UDN+'"] .room-queue ol li.now-playing img.album-art').attr('src', urlObject);
+      } else {
+        $('#rooms-list li[id="'+device.UDN+'"] img.album-art').removeAttr('src');
+      }
+    };
 
-      xhr.send();
-    }
+    xhr.send();
   }
   
   // Artist and track information
   if (playing.isRadio) {
     $('#rooms-list li[id="'+device.UDN+'"] .artist-name').html(playing.radioShow);
     $('#rooms-list li[id="'+device.UDN+'"] .track-title').html(playing.streamContent);
-
-    // Hide queue for streaming/radio playback
-    $('[id="'+device.UDN+'"] .room-queue').hide();
-  } else { 
+  } else {
     $('#rooms-list li[id="'+device.UDN+'"] .artist-name').html(playing.artistName);
     $('#rooms-list li[id="'+device.UDN+'"] .track-title').html(playing.trackTitle);
+  }
 
+  if (playing.isQueue) {
     // Ensure queue is visible
     $('[id="'+device.UDN+'"] .room-queue').show();
 
@@ -48,7 +48,11 @@ function updateDevicePlaying(device, playing) {
       $(queue[playing.queueTrackId-1]).addClass('now-playing');
       $(queue).closest('div').scrollTo($(queue[playing.queueTrackId-1]),{offset:-45,duration:500});
     }
+  } else {
+    // Hide queue for streaming/radio playback
+    $('[id="'+device.UDN+'"] .room-queue').hide();
   }
+
   $('[id="'+device.UDN+'"].room-info').data('playing', playing);
 
   // Room control buttons
@@ -79,22 +83,32 @@ function handlePlayingEvent(device, event) {
   var trackMetaData = $.parseXML($(event).find('CurrentTrackMetaData').attr('val'));
   if (! trackMetaData) return;
 
-  var playing = {};
+  var playing = {isRadio:false,isOther:false,isQueue:false};
   if ($(trackMetaData).find('radioShowMd').text().length) {
     playing['isRadio'] = true;
     playing['radioShow'] = decodeURIComponent(escape($(trackMetaData).find('radioShowMd').text().split(',')[0]));
     if ($(trackMetaData).find('streamContent').text().length) {
       playing['streamContent'] = decodeURIComponent(escape($(trackMetaData).find('streamContent').text()));
     }
-  } else {
-    playing['isRadio'] = false;
+  } else if ($(trackMetaData).find('artist').length == 0) {
+    // Queue playback uses creator tag and has artist tag undefined
+    playing['isQueue'] = true;
     playing['artistName'] = decodeURIComponent(escape($(trackMetaData).find('creator').text()));
     playing['trackTitle'] = decodeURIComponent(escape($(trackMetaData).find('title').text()));
     playing['trackDuration'] = $(event).find('CurrentTrackDuration').attr('val');
     playing['queueTrackId'] = parseInt($(event).find('currenttrack').attr('val'));
+  } else {
+    playing['isOther'] = true;
+    playing['artistName'] = decodeURIComponent(escape($(trackMetaData).find('artist').text()));
+    playing['trackTitle'] = decodeURIComponent(escape($(trackMetaData).find('title').text()));
   }
 
-  playing['albumArtURL'] = device.endpointURI+$(trackMetaData).find('albumArtURI').text();
+  if ($(trackMetaData).find('albumArtURI').text().length) {
+    playing['albumArtURL'] = device.endpointURI+$(trackMetaData).find('albumArtURI').text();
+  } else {
+    // TODO: We should have a default artwork
+    playing['albumArtURL'] = undefined;
+  }
   
   playing['state'] = $(event).find('TransportState').attr('val');
 
@@ -234,7 +248,7 @@ chrome.runtime.onMessage.addListener(
         } else if (event.attr('xmlns') === 'urn:schemas-sonos-com:metadata-1-0/Queue/') {
           handleQueueEvent(request.device, event);
         } else {
-// TODO: Mute event
+          // TODO: Mute event
           console.log('Received unhandled UPnP event');
           console.log(event);
         }
