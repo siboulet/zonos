@@ -173,6 +173,27 @@ function handleQueueEvent(device, event) {
   );
 }
 
+function handleGroupCoordinatorEvent(device, event) {
+  if (event.text() === '1') {
+    $('#rooms-list [id="'+device.UDN+'"]').show();
+  } else {
+    // Hide non-coordinator room
+    $('#rooms-list [id="'+device.UDN+'"]').hide();
+  }
+
+  // Get group information and update group members and coordinator
+  device.__proto__ = UpnpDevice.prototype;
+  device.callServiceAction('ZoneGroupTopology', 'GetZoneGroupAttributes', {}, function(device, result) {
+    var members = result.CurrentZonePlayerUUIDsInGroup.split(',');
+    var coordinator = members[0];
+
+    // Set group coordinator class if there is more than one members in the group
+    if (members.length > 1) {
+      $('[id="uuid:'+coordinator+'"]').addClass('group-coordinator');
+    }
+  });
+}
+
 function showDeviceDetail(device) {
   $('div[id="'+device.UDN+'"]').show();
   if ($('[id="'+device.UDN+'"] .room-queue li.now-playing').length) {
@@ -226,6 +247,8 @@ chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
     switch(request.type) {
       case 'deviceDiscovery':
+        // Discovered a new Sonos device. Check if the device is invisible
+        // and hide it from the device list if needed.
         request.device.__proto__ = UpnpDevice.prototype;
         request.device.callServiceAction('DeviceProperties', 'GetInvisible', {},
           function(device, result) {
@@ -241,17 +264,28 @@ chrome.runtime.onMessage.addListener(
       case 'deviceEvent':
         request.device.__proto__ = UpnpDevice.prototype;
         var event = $(request.event);
-        if (event.find('TransportState').length) {
-          handlePlayingEvent(request.device, event);
-        } else if (event.find('Volume').length) {
-          handleVolumeEvent(request.device, event);
-        } else if (event.attr('xmlns') === 'urn:schemas-sonos-com:metadata-1-0/Queue/') {
-          handleQueueEvent(request.device, event);
-        } else {
-          // TODO: Mute event
-          console.log('Received unhandled UPnP event');
-          console.log(event);
-        }
+
+        switch(event.prop('tagName')) {
+          case 'LASTCHANGE':
+            change = $(event.text());
+            if (change.find('TransportState').length) {
+              handlePlayingEvent(request.device, change);
+            } else if (change.find('Volume').length) {
+              handleVolumeEvent(request.device, change);
+            } else if (change.attr('xmlns') === 'urn:schemas-sonos-com:metadata-1-0/Queue/') {
+              handleQueueEvent(request.device, change);
+            } else {
+              // TODO: Mute event
+              throw 'Unexpected Sonos Change event: ' + event;
+            }
+            break;
+
+          case 'GROUPCOORDINATORISLOCAL':
+            handleGroupCoordinatorEvent(request.device, event);
+            break;
+
+          }
+
         break;
 
       case 'discoveryTimeout':

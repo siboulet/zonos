@@ -209,3 +209,6 @@ body {
   width: 200px;
 }
 
+.group-coordinator .room-name:after {
+  content: " [GROUP]";
+}

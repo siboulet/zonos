@@ -29,6 +29,9 @@ function discoveryDeviceCallback(device) {
 
   // Queue change events
   upnpEventListener.subscribeServiceEvent(device, 'Queue', upnpEventCallback);
+
+  // Group management events
+  upnpEventListener.subscribeServiceEvent(device, 'GroupManagement', upnpEventCallback);
 }
 
 function discoveryTimeoutCallback() {

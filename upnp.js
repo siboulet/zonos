@@ -93,7 +93,9 @@ function UpnpEventListener(port, eventCallback) {
                   }
                 );
 
-                eventCallback(_this.subscriptions[subscriptionId], $($.parseXML(content)).find('LastChange').text());
+                $($.parseXML(content)).find('property').each(function(){
+                  eventCallback(_this.subscriptions[subscriptionId], $(this).html());
+                });
               }
             };
 
