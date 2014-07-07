@@ -7,7 +7,7 @@
 
   "app": {
     "background": {
-      "scripts": ["jquery/jquery.min.js", "upnp.js", "background.js"]
+      "scripts": ["jquery/jquery-1.11.1.min.js", "upnp.js", "background.js"]
     }
   },
 
