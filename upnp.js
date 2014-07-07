@@ -109,6 +109,11 @@ function UpnpEventListener(port, eventCallback) {
 
 UpnpEventListener.prototype.subscribeServiceEvent = function(device, serviceName, eventCallback) {
   var _this = this;
+
+  if (typeof device['services'][serviceName] == 'undefined') {
+    throw 'Device does not support service "'+serviceName+'"';
+  }
+
   var subscribeURL = device.endpointURI + device['services'][serviceName].subscribeURL;
 
   chrome.socket.create('tcp',

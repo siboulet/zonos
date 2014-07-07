@@ -14,6 +14,11 @@ function discoveryDeviceCallback(device) {
     device: device
   });
 
+  // Don't subscribe to events from Sonos BRIDGE device
+  if (device.modelDescription === 'Sonos BRIDGE') {
+    return;
+  }
+
   // TODO: Allow foreground page to signal not to listen for events for this device
   // This would allow to ignore events for invisible Sonos devices
   // Track changes, play/stop events
