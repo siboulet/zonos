@@ -1,5 +1,28 @@
 function updateDevicePlaying(device, playing) {
-  $('[id="'+device.UDN+'"] .room-queue li.now-playing').removeClass('now-playing');
+  // Update what device is currently playing
+
+  // Update room queue
+  var roomQueue = $('[id="'+device.UDN+'"] .room-queue li');
+  roomQueue.removeClass('now-playing');
+
+  $(roomQueue).parent().hide();
+
+  if (roomQueue.length > 0 && playing.isQueue) {
+    // Sometime Sonos reports it's playing from queue, when in fact it's not.
+    // One example is when playing a Station on Rdio.
+    // Check if currently playing song is present in queue.
+
+    if ($(roomQueue[playing.queueTrackId]).find('.track-title').html() === playing.trackTitle) {
+      // Ensure queue is visible
+      $(roomQueue).parent().show();
+
+      // Highlight currently playing song from queue
+      $(roomQueue[playing.queueTrackId]).addClass('now-playing');
+
+      // Scroll to playing song
+      $(roomQueue).parent().scrollTo($(roomQueue[playing.queueTrackId]),{offset:-45,duration:500});
+    }
+  }
 
   // Currently playing album/radio stream artwork
   var nowPlayingAlbumArt = $('[id="'+device.UDN+'"] .room-queue li.now-playing img.album-art');
@@ -38,21 +61,7 @@ function updateDevicePlaying(device, playing) {
     $('#rooms-list li[id="'+device.UDN+'"] .track-title').html(playing.trackTitle);
   }
 
-  if (playing.isQueue) {
-    // Ensure queue is visible
-    $('[id="'+device.UDN+'"] .room-queue').show();
-
-    // Toggle queue now playing track
-    var queue = $('[id="'+device.UDN+'"] .room-queue li');
-    if (queue.length > 0) {
-      $(queue[playing.queueTrackId-1]).addClass('now-playing');
-      $(queue).closest('div').scrollTo($(queue[playing.queueTrackId-1]),{offset:-45,duration:500});
-    }
-  } else {
-    // Hide queue for streaming/radio playback
-    $('[id="'+device.UDN+'"] .room-queue').hide();
-  }
-
+  // Attach currently playing info to room data
   $('[id="'+device.UDN+'"].room-info').data('playing', playing);
 
   // Room control buttons
@@ -83,34 +92,29 @@ function handlePlayingEvent(device, event) {
   var trackMetaData = $.parseXML($(event).find('CurrentTrackMetaData').attr('val'));
   if (! trackMetaData) return;
 
-  var playing = {isRadio:false,isOther:false,isQueue:false};
+  var playing = {isRadio:false,isQueue:false};
   if ($(trackMetaData).find('radioShowMd').text().length) {
-    playing['isRadio'] = true;
-    playing['radioShow'] = decodeURIComponent(escape($(trackMetaData).find('radioShowMd').text().split(',')[0]));
+    playing.isRadio = true;
+    playing.radioShow = decodeURIComponent(escape($(trackMetaData).find('radioShowMd').text().split(',')[0]));
     if ($(trackMetaData).find('streamContent').text().length) {
-      playing['streamContent'] = decodeURIComponent(escape($(trackMetaData).find('streamContent').text()));
+      playing.streamContent = decodeURIComponent(escape($(trackMetaData).find('streamContent').text()));
     }
-  } else if ($(trackMetaData).find('artist').length == 0) {
-    // Queue playback uses creator tag and has artist tag undefined
-    playing['isQueue'] = true;
-    playing['artistName'] = decodeURIComponent(escape($(trackMetaData).find('creator').text()));
-    playing['trackTitle'] = decodeURIComponent(escape($(trackMetaData).find('title').text()));
-    playing['trackDuration'] = $(event).find('CurrentTrackDuration').attr('val');
-    playing['queueTrackId'] = parseInt($(event).find('currenttrack').attr('val'));
   } else {
-    playing['isOther'] = true;
-    playing['artistName'] = decodeURIComponent(escape($(trackMetaData).find('artist').text()));
-    playing['trackTitle'] = decodeURIComponent(escape($(trackMetaData).find('title').text()));
+    playing.isQueue = true;
+    playing.artistName = decodeURIComponent(escape($(trackMetaData).find('creator').text()));
+    playing.trackTitle = decodeURIComponent(escape($(trackMetaData).find('title').text()));
+    playing.trackDuration = $(event).find('CurrentTrackDuration').attr('val');
+    playing.queueTrackId = parseInt($(event).find('currenttrack').attr('val')) - 1; // zero-indexed
   }
 
   if ($(trackMetaData).find('albumArtURI').text().length) {
-    playing['albumArtURL'] = device.endpointURI+$(trackMetaData).find('albumArtURI').text();
+    playing.albumArtURL = device.endpointURI+$(trackMetaData).find('albumArtURI').text();
   } else {
     // TODO: We should have a default artwork
-    playing['albumArtURL'] = undefined;
+    playing.albumArtURL = undefined;
   }
   
-  playing['state'] = $(event).find('TransportState').attr('val');
+  playing.state = $(event).find('TransportState').attr('val');
 
   updateDevicePlaying(device, playing);
 }
@@ -128,49 +132,46 @@ function handleVolumeEvent(device, event) {
 }
 
 function handleQueueEvent(device, event) {
-  device.callServiceAction('Queue','Browse', {QueueID:0,StartingIndex:0,RequestedCount:0},
-    function(device, result) {
-      var queue = $.parseXML(result.Result);
-      var playing = $('[id="'+device.UDN+'"].room-info').data('playing');
+  // Queue has changed
+  // Reload queue
+  device.callServiceAction('Queue','Browse', {QueueID:0,StartingIndex:0,RequestedCount:0},function(device, result) {
+    var queue = $.parseXML(result.Result);
 
-      // Clear current queue
-      $('[id="'+device.UDN+'"] .room-queue').html('');
+    // Clear current queue
+    $('[id="'+device.UDN+'"] .room-queue').empty();
 
-      $(queue).find('item').each(
-        function(index) {
-          var trackURI = $(this).find('res').text();
-          var artistName = $(this).find('creator').text();
-          var trackTitle = $(this).find('title').text();
-          var albumTitle = $(this).find('album').text();
-          $('[id="'+device.UDN+'"] .room-queue').append('<li><img class="album-art"><span class="artist-name">'+artistName+'</span><span class="album-title">'+albumTitle+'</span><span class="track-title">'+trackTitle+'</span>');
+    $(queue).find('item').each(function(index) {
+      var li = $('<li>');
+      li.append('<img class="album-art">');
+      li.append('<span class="artist-name">'+$(this).find('creator').text()+'</span>');
+      li.append('<span class="album-title">'+$(this).find('album').text()+'</span>');
+      li.append('<span class="track-title">'+$(this).find('title').text()+'</span>');
 
-          if (playing && playing.queueTrackId && playing.queueTrackId-1 == index) {
-            $('[id="'+device.UDN+'"] .room-queue li').last().addClass('now-playing');
-            $('[id="'+device.UDN+'"] .room-queue li').last().find('img.album-art').attr('src', $('#rooms-list li[id="'+device.UDN+'"] img.album-art').attr('src'));
-            $('[id="'+device.UDN+'"] .room-queue').scrollTo($('[id="'+device.UDN+'"] .room-queue li.now-playing'),{offset:-45});
+      $('[id="'+device.UDN+'"] .room-queue').append(li);
+
+      li.click(function() {
+        if ($(window).data('windowFocus') === true) return;
+
+        if ($(this).hasClass('now-playing')) {
+          // Click on now playing to play/pause
+          if ($('[id="'+device.UDN+'"] .pause-button').is(':visible')) {
+            $('[id="'+device.UDN+'"] .pause-button').trigger('click');
+          } else {
+            $('[id="'+device.UDN+'"] .play-button').trigger('click');
           }
-
-         $('[id="'+device.UDN+'"] .room-queue li').last().click(
-           function() {
-             if ($(window).data('windowFocus') === true) return;
-
-             if ($(this).hasClass('now-playing')) {
-               // Click on now playing to play/pause
-               if ($('[id="'+device.UDN+'"] .pause-button').is(':visible')) {
-                 $('[id="'+device.UDN+'"] .pause-button').trigger('click');
-               } else {
-                 $('[id="'+device.UDN+'"] .play-button').trigger('click');
-               }
-             } else {
-               // Click to seek track
-               device.callServiceAction('AVTransport', 'Seek', {InstanceID:0,Unit:'TRACK_NR',Target:$(this).index()+1}, function(){});
-             }
-           }
-         );
+        } else {
+          // Click to seek track
+          device.callServiceAction('AVTransport', 'Seek', {InstanceID:0,Unit:'TRACK_NR',Target:$(this).index()+1}, function(){});
         }
-      );
+      });
+    });
+
+    // If room is currently playing something toggle now-playing update
+    var playing = $('[id="'+device.UDN+'"].room-info').data('playing');
+    if (playing) {
+      updateDevicePlaying(device, playing);
     }
-  );
+  });
 }
 
 function handleGroupCoordinatorEvent(device, event) {
