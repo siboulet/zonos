@@ -190,6 +190,7 @@ body {
   color: black;
   border-radius: 2px;
   height: 290px;
+  overflow: hidden;
 }
 
 .room-queue li.now-playing span {

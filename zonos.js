@@ -1,8 +1,8 @@
 function updateDevicePlaying(device, playing) {
-  $('[id="'+device.UDN+'"] .room-queue ol li.now-playing').removeClass('now-playing');
+  $('[id="'+device.UDN+'"] .room-queue li.now-playing').removeClass('now-playing');
 
   // Currently playing album/radio stream artwork
-  var nowPlayingAlbumArt = $('[id="'+device.UDN+'"] .room-queue ol li.now-playing img.album-art');
+  var nowPlayingAlbumArt = $('[id="'+device.UDN+'"] .room-queue li.now-playing img.album-art');
   if (nowPlayingAlbumArt.attr('src') !== undefined) {
     // Load artwork from queue
     $('#rooms-list li[id="'+device.UDN+'"] img.album-art').attr('src', nowPlayingAlbumArt.attr('src'));
@@ -20,7 +20,7 @@ function updateDevicePlaying(device, playing) {
         var blob = new Blob([this.response], {type: 'image/jpeg'});
         var urlObject = URL.createObjectURL(blob);
         $('#rooms-list li[id="'+device.UDN+'"] img.album-art').attr('src', urlObject);
-        $('[id="'+device.UDN+'"] .room-queue ol li.now-playing img.album-art').attr('src', urlObject);
+        $('[id="'+device.UDN+'"] .room-queue li.now-playing img.album-art').attr('src', urlObject);
       } else {
         $('#rooms-list li[id="'+device.UDN+'"] img.album-art').removeAttr('src');
       }
@@ -43,7 +43,7 @@ function updateDevicePlaying(device, playing) {
     $('[id="'+device.UDN+'"] .room-queue').show();
 
     // Toggle queue now playing track
-    var queue = $('[id="'+device.UDN+'"] .room-queue ol li');
+    var queue = $('[id="'+device.UDN+'"] .room-queue li');
     if (queue.length > 0) {
       $(queue[playing.queueTrackId-1]).addClass('now-playing');
       $(queue).closest('div').scrollTo($(queue[playing.queueTrackId-1]),{offset:-45,duration:500});
@@ -134,7 +134,7 @@ function handleQueueEvent(device, event) {
       var playing = $('[id="'+device.UDN+'"].room-info').data('playing');
 
       // Clear current queue
-      $('[id="'+device.UDN+'"] .room-queue ol').html('');
+      $('[id="'+device.UDN+'"] .room-queue').html('');
 
       $(queue).find('item').each(
         function(index) {
@@ -142,7 +142,7 @@ function handleQueueEvent(device, event) {
           var artistName = $(this).find('creator').text();
           var trackTitle = $(this).find('title').text();
           var albumTitle = $(this).find('album').text();
-          $('[id="'+device.UDN+'"] .room-queue ol').append('<li><img class="album-art"><span class="artist-name">'+artistName+'</span><span class="album-title">'+albumTitle+'</span><span class="track-title">'+trackTitle+'</span>');
+          $('[id="'+device.UDN+'"] .room-queue').append('<li><img class="album-art"><span class="artist-name">'+artistName+'</span><span class="album-title">'+albumTitle+'</span><span class="track-title">'+trackTitle+'</span>');
 
           if (playing && playing.queueTrackId && playing.queueTrackId-1 == index) {
             $('[id="'+device.UDN+'"] .room-queue li').last().addClass('now-playing');
@@ -205,7 +205,7 @@ function showDeviceDetail(device) {
 
 function addDiscoveredDevice(device) {
   $('#searching').hide();
-  $('#rooms-list').parent().append('<div id="'+device.UDN+'" class="room-info"><input type="image" src="close.png" class="close-button"><div class="room-control"><span class="room-name">'+device.roomName+'</span><div class="volume-control"><img src="volume-down.png" class="volume-down"><input type="range" class="volume-slider" min="0" max="100" value="0"><img src="volume-up.png" class="volume-up"></div><input type="image" src="prev.png" class="prev-button"><input type="image" src="play.png" class="play-button"><input type="image" src="pause.png" class="pause-button"><input type="image" src="stop.png" class="stop-button"><input type="image" src="next.png" class="next-button"></div><div class="room-queue"><ol/></div></div>');
+  $('#rooms-list').parent().append('<div id="'+device.UDN+'" class="room-info"><input type="image" src="close.png" class="close-button"><div class="room-control"><span class="room-name">'+device.roomName+'</span><div class="volume-control"><img src="volume-down.png" class="volume-down"><input type="range" class="volume-slider" min="0" max="100" value="0"><img src="volume-up.png" class="volume-up"></div><input type="image" src="prev.png" class="prev-button"><input type="image" src="play.png" class="play-button"><input type="image" src="pause.png" class="pause-button"><input type="image" src="stop.png" class="stop-button"><input type="image" src="next.png" class="next-button"></div><ol class="room-queue"></ol></div>');
       
   $('div[id="'+device.UDN+'"] .close-button').click(function(){
     $('#rooms-list').show();
