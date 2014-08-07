@@ -168,7 +168,7 @@ body {
 .room-queue li {
   opacity: 0.6;
   counter-increment: item;
-  margin-top: 4px;
+  margin: 2px;
 }
 
 .room-queue li:not(.now-playing):before {
@@ -183,8 +183,6 @@ body {
 .room-queue li.now-playing {
   opacity: 1;
   text-align: center;
-  margin-top: 10px;
-  padding: 8px;
   font-size: 18px;
   background: rgba(255, 255, 255, 0.9);
   color: black;
@@ -203,9 +201,8 @@ body {
 
 .room-queue .now-playing .album-art {
   border: 1px solid #c0c0c0;
-  margin: auto;
-  margin-bottom: 20px;
   display: block;
+  margin: auto;
   height: 200px;
   width: 200px;
 }
