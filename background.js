@@ -42,13 +42,13 @@ function discoveryTimeoutCallback() {
 
 chrome.app.runtime.onLaunched.addListener(function() {
   chrome.app.window.create('zonos.html', {
-    id: '',
-    singleton: true,
-    bounds: {
+    id: 'zonos',
+    innerBounds: {
       width: 400,
-      height: 500
-    },
-    resizable: false
+      height: 500,
+      minWidth: 400,
+      minHeight: 500,
+    }
   });
 
   upnpEventListener = new UpnpEventListener(3400, upnpEventCallback);
