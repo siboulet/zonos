@@ -47,5 +47,9 @@ extension..." at the top and point it to the folder where you extracted Zonos.
 * http://forums.sonos.com/showthread.php?t=34484
 * http://blog.travelmarx.com/2010/06/exploring-sonos-via-upnp.html
 
-### Thanks
-Zonos Icon from HydroPro Set by Ben Fleming: http://mediadesign.deviantart.com/art/HydroPRO-HP-Dock-Icon-Set-71776088
+### Logo and Icons
+Zonos Logo from HydroPro Set by Ben Fleming: http://mediadesign.deviantart.com/art/HydroPRO-HP-Dock-Icon-Set-71776088
+Licensed under the Creative Commons Attribution-Noncommercial-Share Alike 3.0 License.
+
+Icons from GLYPHICONS, used under license.
+Licensed under the GLYPHICONS license, see /glyphicons/LICENSE.
