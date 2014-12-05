@@ -248,18 +248,18 @@ chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
     switch(request.type) {
       case 'deviceDiscovery':
-        // Discovered a new Sonos device. Check if the device is invisible
-        // and hide it from the device list if needed.
+        // Discovered a new Sonos device.
         request.device.__proto__ = UpnpDevice.prototype;
-        request.device.callServiceAction('DeviceProperties', 'GetInvisible', {},
-          function(device, result) {
-            if (result.CurrentInvisible == 1) {
-              console.log('Device '+device.friendlyName+' is invisible');
-            } else {
-              addDiscoveredDevice(device);
-            }
+
+        // Hide devices that are not zone group controlling devices.
+        // For example, in a stereo pair, only one device is controlling
+        // the group. That device will return a zone group name when
+        // being queried for group attributes.
+        request.device.callServiceAction('ZoneGroupTopology', 'GetZoneGroupAttributes', {}, function(device, result) {
+          if (result.CurrentZoneGroupName) {
+            addDiscoveredDevice(device);
           }
-        );
+        });
         break;
 
       case 'deviceEvent':
