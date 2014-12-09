@@ -54,8 +54,13 @@ function updateDevicePlaying(device, playing) {
   
   // Artist and track information
   if (playing.isRadio) {
-    $('#rooms-list li[id="'+device.UDN+'"] .artist-name').html(playing.radioShow);
-    $('#rooms-list li[id="'+device.UDN+'"] .track-title').html(playing.streamContent);
+    if (playing.radioShowTitle) {
+      $('#rooms-list li[id="'+device.UDN+'"] .artist-name').html([playing.radioName,playing.radioShowTitle].join(' - '));
+    } else {
+      // Unknown radio show
+      $('#rooms-list li[id="'+device.UDN+'"] .artist-name').html(playing.radioName);
+    }
+    $('#rooms-list li[id="'+device.UDN+'"] .track-title').html(playing.radioCurrentPlaying);
   } else {
     $('#rooms-list li[id="'+device.UDN+'"] .artist-name').html(playing.artistName);
     $('#rooms-list li[id="'+device.UDN+'"] .track-title').html(playing.trackTitle);
@@ -89,26 +94,28 @@ function updateDevicePlaying(device, playing) {
 }
 
 function handlePlayingEvent(device, event) {
-  var trackMetaData = $.parseXML($(event).find('CurrentTrackMetaData').attr('val'));
-  if (! trackMetaData) return;
+  var transportState = $(event).find('TransportState').attr('val');
+  var trackMetadata = $.parseXML($(event).find('CurrentTrackMetadata').attr('val'));
+  var transportMetadata = $.parseXML($(event).find('r\\:EnqueuedTransportUriMetadata').attr('val'));
 
   var playing = {isRadio:false,isQueue:false};
-  if ($(trackMetaData).find('radioShowMd').text().length) {
+  if ($(trackMetadata).find('res').text().indexOf('x-sonosapi-stream') === 0) {
     playing.isRadio = true;
-    playing.radioShow = decodeURIComponent(escape($(trackMetaData).find('radioShowMd').text().split(',')[0]));
-    if ($(trackMetaData).find('streamContent').text().length) {
-      playing.streamContent = decodeURIComponent(escape($(trackMetaData).find('streamContent').text()));
+    playing.radioName = decodeURIComponent(escape($(transportMetadata).find('title').text()));
+    if (transportState !== 'TRANSITIONING') {
+      playing.radioShowTitle = decodeURIComponent(escape($(trackMetadata).find('radioShowMd').text().replace(/\\/g, '').split(',').slice(0,-1).join(',')));
+      playing.radioCurrentPlaying = decodeURIComponent(escape($(trackMetadata).find('streamContent').text()));
     }
   } else {
     playing.isQueue = true;
-    playing.artistName = decodeURIComponent(escape($(trackMetaData).find('creator').text()));
-    playing.trackTitle = decodeURIComponent(escape($(trackMetaData).find('title').text()));
+    playing.artistName = decodeURIComponent(escape($(trackMetadata).find('creator').text()));
+    playing.trackTitle = decodeURIComponent(escape($(trackMetadata).find('title').text()));
     playing.trackDuration = $(event).find('CurrentTrackDuration').attr('val');
     playing.queueTrackId = parseInt($(event).find('currenttrack').attr('val')) - 1; // zero-indexed
   }
 
-  if ($(trackMetaData).find('albumArtURI').text().length) {
-    playing.albumArtURL = device.endpointURI+$(trackMetaData).find('albumArtURI').text();
+  if ($(trackMetadata).find('albumArtURI').text().length) {
+    playing.albumArtURL = device.endpointURI+$(trackMetadata).find('albumArtURI').text();
   } else {
     // TODO: We should have a default artwork
     playing.albumArtURL = undefined;
