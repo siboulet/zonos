@@ -148,11 +148,16 @@ function handleQueueEvent(device, event) {
     $('[id="'+device.UDN+'"] .room-queue').empty();
 
     $(queue).find('item').each(function(index) {
+      var artistName = $(this).find('creator').text();
+      var albumTitle = $(this).find('album').text();
+      var trackTitle = $(this).find('title').text();
+
       var li = $('<li>');
+      li.attr('title', artistName+"\n"+albumTitle+"\n"+trackTitle);
       li.append('<img class="album-art">');
-      li.append('<span class="artist-name">'+$(this).find('creator').text()+'</span>');
-      li.append('<span class="album-title">'+$(this).find('album').text()+'</span>');
-      li.append('<span class="track-title">'+$(this).find('title').text()+'</span>');
+      li.append('<span class="artist-name">'+artistName+'</span>');
+      li.append('<span class="album-title">'+albumTitle+'</span>');
+      li.append('<span class="track-title">'+trackTitle+'</span>');
 
       $('[id="'+device.UDN+'"] .room-queue').append(li);
 
