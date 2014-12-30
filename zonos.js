@@ -5,23 +5,23 @@ function updateDevicePlaying(device, playing) {
   var roomQueue = $('[id="'+device.UDN+'"] .room-queue li');
   roomQueue.removeClass('now-playing');
 
-  $(roomQueue).parent().hide();
+  if (!playing.isQueue) {
+    $(roomQueue).parent().hide();
+  } else {
+    $(roomQueue).parent().show();
 
-  if (roomQueue.length > 0 && playing.isQueue) {
-    // Sometime Sonos reports it's playing from queue, when in fact it's not.
-    // One example is when playing a Station on Rdio.
-    // Check if currently playing song is present in queue.
+    // Highlight currently playing track
+    $(roomQueue[playing.queueTrackId]).addClass('now-playing');
 
-    if ($(roomQueue[playing.queueTrackId]).find('.track-title').html() === playing.trackTitle) {
-      // Ensure queue is visible
-      $(roomQueue).parent().show();
+    // Update track details. When playing from Library (ex. mp3) Sonos
+    // doesn't know the track details when populating the queue. The
+    // details become known when the file is read (played).
+    $(roomQueue[playing.queueTrackId]).find('.artist-name').text(playing.artistName);
+    $(roomQueue[playing.queueTrackId]).find('.album-title').text(playing.albumTitle);
+    $(roomQueue[playing.queueTrackId]).find('.track-title').text(playing.trackTitle);
 
-      // Highlight currently playing song from queue
-      $(roomQueue[playing.queueTrackId]).addClass('now-playing');
-
-      // Scroll to playing song
-      $(roomQueue).parent().scrollTo($(roomQueue[playing.queueTrackId]),{offset:-45,duration:500});
-    }
+    // Scroll to playing track
+    $(roomQueue).parent().scrollTo($(roomQueue[playing.queueTrackId]),{offset:-45,duration:500});
   }
 
   // Currently playing album/radio stream artwork
@@ -109,6 +109,7 @@ function handlePlayingEvent(device, event) {
   } else {
     playing.isQueue = true;
     playing.artistName = decodeURIComponent(escape($(trackMetadata).find('creator').text()));
+    playing.albumTitle = decodeURIComponent(escape($(trackMetadata).find('album').text()));
     playing.trackTitle = decodeURIComponent(escape($(trackMetadata).find('title').text()));
     playing.trackDuration = $(event).find('CurrentTrackDuration').attr('val');
     playing.queueTrackId = parseInt($(event).find('currenttrack').attr('val')) - 1; // zero-indexed
