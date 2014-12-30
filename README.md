@@ -8,7 +8,8 @@ you to browse your music library. It's particulary useful to control your Sonos 
 that don't currently have a native Sonos application (such as Linux or Google Chromebooks). It
 should work on any recent version of Google Chrome.
 
-![Zonos](/screenshot.png?raw=true)
+![Sonos](/screenshot.png?raw=true)
+![Sonos](/screenshot2.png?raw=true)
 
 This application may also be used as an example for developping other UPnP clients for Chrome.
 
